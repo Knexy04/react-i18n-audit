@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "description": "I18n audit for React/Next: fix, report, check",
   "type": "module",
-  "homepage": "https://github.com/Knexy04/react-i18n-audit/",
+  "homepage": "https://github.com/Knexy04/react-i18n-audit",
   "repository": "github:Knexy04/react-i18n-audit",
   "author": "Knexy04",
   "bin": {
@@ -40,9 +40,6 @@
     "README.md",
     "LICENSE"
   ],
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com/"
-  },
   "devDependencies": {
     "@types/babel__traverse": "^7.28.0",
     "@types/fs-extra": "^11.0.4",
