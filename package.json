@@ -1,6 +1,6 @@
 {
   "name": "react-i18n-audit",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "I18n audit for React/Next: fix, report, check",
   "type": "module",
   "homepage": "https://github.com/Knexy04/react-i18n-audit",
