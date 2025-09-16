@@ -1,12 +1,20 @@
 {
   "name": "react-i18n-audit",
   "version": "0.0.1",
-  "description": "Audit i18n keys for React/Next: scan, report, prune",
+  "description": "I18n audit for React/Next: fix, report, check",
   "type": "module",
-  "private": false,
+  "homepage": "https://github.com/Knexy04/react-i18n-audit/",
+  "author": "Knexy04",
   "bin": {
     "react-i18n-audit": "dist/cli.cjs"
   },
+  "contributors": [
+    {
+      "name": "Knexy04",
+      "email": "knexy.dev@gmail.com",
+      "url": "https://github.com/Knexy04"
+    }
+  ],
   "scripts": {
     "build": "tsup src/cli.ts --format esm,cjs --dts --splitting --clean",
     "dev": "tsx src/cli.ts",
@@ -25,16 +33,12 @@
     "translations",
     "cli"
   ],
-  "author": "@Knexy04/react-i18n-audit",
   "license": "MIT",
   "files": [
     "dist",
     "README.md",
     "LICENSE"
   ],
-  "publishConfig": {
-    "access": "restricted"
-  },
   "devDependencies": {
     "@types/babel__traverse": "^7.28.0",
     "@types/fs-extra": "^11.0.4",
