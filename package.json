@@ -1,6 +1,6 @@
 {
   "name": "react-i18n-audit",
-  "version": "0.0.2",
+  "version": "0.0.1",
   "description": "Audit i18n keys for React/Next: scan, report, prune",
   "type": "module",
   "private": false,
@@ -25,7 +25,7 @@
     "translations",
     "cli"
   ],
-  "author": "Knexy04",
+  "author": "@Knexy04/react-i18n-audit",
   "license": "MIT",
   "files": [
     "dist",
