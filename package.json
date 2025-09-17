@@ -12,13 +12,6 @@
   "bin": {
     "react-i18n-audit": "dist/cli.cjs"
   },
-  "contributors": [
-    {
-      "name": "Knexy04",
-      "email": "knexy.dev@gmail.com",
-      "url": "https://github.com/Knexy04"
-    }
-  ],
   "scripts": {
     "build": "tsup src/cli.ts --format esm,cjs --dts --splitting --clean",
     "dev": "tsx src/cli.ts",
