@@ -3,13 +3,17 @@ export type Locale = string;
 export interface AuditConfig {
 	// Glob patterns to include source files
 	sourceGlobs: string[];
-	// File extensions for locale files
-	localeFileExtensions?: string[]; // default: ['json']
 	// Optional file globs for locales; supports placeholder {locale}
 	localeFileGlobs?: string[];
 	// Optional audit behavior controls
 	// (kept minimal per CLI)
 	placeholderText?: string; // text inserted for missing keys when fixing
+	// Names of translation hooks providing a namespace, e.g. useTranslations, useFmtTranslations
+	translationHookNames?: string[];
+	// Names of translation functions to call, e.g. t, tMeta, tFooter
+	translationFunctionNames?: string[];
+	// Regex patterns (as strings) to exclude flattened locale keys from analysis
+	excludeKeyPatterns?: string[];
 }
 
 export interface ScanResult {

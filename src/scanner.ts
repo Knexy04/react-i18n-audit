@@ -19,6 +19,9 @@ export async function scanUsedKeys(config: AuditConfig): Promise<ScanResult> {
 	const used = new Set<string>();
 	const hits: Record<string, number> = {};
 	const keyRefs: Record<string, Array<{ file: string; line: number }>> = {};
+	// Track identifiers bound to next-intl (or wrappers) namespaces: const t = useTranslations('NS')
+	// identifierNamespace['t'] = 'NS'
+	const identifierNamespace: Record<string, string> = {};
 	// Compatibility: @babel/traverse default export vs namespace across CJS/ESM
 	const traverse = (babelTraverse as unknown as { default?: (n: any, o: any) => void }).default ?? (babelTraverse as unknown as (n: any, o: any) => void);
 	for (const file of files) {
@@ -31,19 +34,63 @@ export async function scanUsedKeys(config: AuditConfig): Promise<ScanResult> {
 					plugins: ['typescript', 'jsx'],
 				});
 				traverse(ast, {
+					VariableDeclarator(path: any) {
+						// const t = useTranslations('Namespace') | useFmtTranslations('Namespace')
+						const id = path.node.id;
+						const init = path.node.init;
+						if (!id || !init) return;
+						if (id.type !== 'Identifier') return;
+						if (init.type !== 'CallExpression') return;
+						const callee = init.callee as any;
+						const calleeName = callee?.type === 'Identifier' ? callee.name : (callee?.type === 'MemberExpression' ? callee.property?.name : undefined);
+						const hookNames = new Set(config.translationHookNames ?? []);
+						if (hookNames.has(calleeName)) {
+							const firstArg = (init.arguments as any[])[0];
+							if (firstArg && firstArg.type === 'StringLiteral' && firstArg.value) {
+								identifierNamespace[id.name] = firstArg.value as string;
+							}
+						}
+					},
 					CallExpression(path: any) {
-						// t('key') or i18n.t('key')
+						// t('key') or i18n.t('key') or any identifier bound via configured hooks (e.g. tMeta('key'))
 						const callee: any = path.node.callee as any;
 						const args = path.node.arguments as any[];
 						const firstArg = args[0];
-						const isT = (callee.type === 'Identifier' && callee.name === 't') ||
-							(callee.type === 'MemberExpression' && (callee.property as any).name === 't');
-						if (isT && firstArg && firstArg.type === 'StringLiteral') {
-							const key = firstArg.value;
-							used.add(key);
+						const allowedFns = new Set(config.translationFunctionNames ?? ['t']);
+						const isIdentifierCall = (callee.type === 'Identifier' && (allowedFns.has(callee.name) || identifierNamespace[callee.name]));
+						const isMemberCall = (callee.type === 'MemberExpression' && allowedFns.has((callee.property as any).name));
+						if ((isIdentifierCall || isMemberCall) && firstArg && firstArg.type === 'StringLiteral') {
+							const rawKey = firstArg.value as string;
+							// If identifier is namespaced, prefix with namespace
+							let fullKey = rawKey;
+							if (callee.type === 'Identifier' && identifierNamespace[callee.name]) {
+								fullKey = `${identifierNamespace[callee.name]}.${rawKey}`;
+							} else if (callee.type === 'MemberExpression' && callee.object?.type === 'Identifier' && identifierNamespace[callee.object.name]) {
+								fullKey = `${identifierNamespace[callee.object.name]}.${rawKey}`;
+							}
+							used.add(fullKey);
 							hits[file] = (hits[file] ?? 0) + 1;
 							const loc = (firstArg.loc?.start?.line ?? path.node.loc?.start?.line ?? 1) as number;
-							(keyRefs[key] ??= []).push({ file, line: loc });
+							(keyRefs[fullKey] ??= []).push({ file, line: loc });
+						}
+
+						// Inline pattern: useTranslations('NS')('key') or useFmtTranslations('NS')('key')
+						if (callee.type === 'CallExpression' && firstArg && firstArg.type === 'StringLiteral') {
+							const inner = callee as any;
+							const innerCallee = inner.callee as any;
+							const innerName = innerCallee?.type === 'Identifier' ? innerCallee.name : (innerCallee?.type === 'MemberExpression' ? innerCallee.property?.name : undefined);
+							const hookNames = new Set(config.translationHookNames ?? []);
+							if (hookNames.has(innerName)) {
+								const nsArg = (inner.arguments as any[])[0];
+								if (nsArg && nsArg.type === 'StringLiteral') {
+									const rawKey = firstArg.value as string;
+									const fullKey = `${nsArg.value}.${rawKey}`;
+									used.add(fullKey);
+									hits[file] = (hits[file] ?? 0) + 1;
+									const loc = (firstArg.loc?.start?.line ?? path.node.loc?.start?.line ?? 1) as number;
+									(keyRefs[fullKey] ??= []).push({ file, line: loc });
+								}
+							}
 						}
 
 						// intl.formatMessage({ id: 'key' })

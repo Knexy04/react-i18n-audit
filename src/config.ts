@@ -1,14 +1,16 @@
 import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { z } from 'zod';
-import { DEFAULT_SOURCE_GLOBS, DEFAULT_LOCALE_EXTENSIONS, DEFAULT_PLACEHOLDER } from './constants.js';
+import { DEFAULT_SOURCE_GLOBS, DEFAULT_PLACEHOLDER, DEFAULT_TRANSLATION_HOOKS, DEFAULT_TRANSLATION_FUNCTIONS } from './constants.js';
 import type { AuditConfig } from './types.js';
 
 const ConfigSchema = z.object({
 	sourceGlobs: z.array(z.string()).default(DEFAULT_SOURCE_GLOBS),
-	localeFileExtensions: z.array(z.string()).default(DEFAULT_LOCALE_EXTENSIONS),
 	localeFileGlobs: z.array(z.string()).optional(),
 	placeholderText: z.string().default(DEFAULT_PLACEHOLDER),
+	translationHookNames: z.array(z.string()).default(DEFAULT_TRANSLATION_HOOKS),
+	translationFunctionNames: z.array(z.string()).default(DEFAULT_TRANSLATION_FUNCTIONS),
+	excludeKeyPatterns: z.array(z.string()).default(['\\.polyglot-description$']),
 });
 
 export type NormalizedConfig = z.infer<typeof ConfigSchema> & AuditConfig;

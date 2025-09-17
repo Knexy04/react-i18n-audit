@@ -14,11 +14,28 @@ export async function runFix(_opts: Partial<AuditConfig> & { config?: string; re
 	const userConfig = await loadConfig(_opts.config);
 	const config: AuditConfig = { ...userConfig, ..._opts };
 	const [scan, locales] = await Promise.all([scanUsedKeys(config), loadLocales(config)]);
-	const rep = generateReport(locales, scan, userConfig);
+    // Base report respects excludeKeyPatterns (for adding placeholders only)
+    const rep = generateReport(locales, scan, userConfig);
+
+    // For deletions (unused/extra), ignore excludeKeyPatterns entirely
+    const localesNoExclude = await loadLocales({ ...userConfig, excludeKeyPatterns: [] });
+    const repNoExclude = generateReport(localesNoExclude, scan, userConfig);
 
 	const placeholder = userConfig.placeholderText ?? DEFAULT_PLACEHOLDER;
 
-	const missing = _opts.removeOnly ? [] : rep.items.filter((i) => i.type === 'missing');
+    const missing = _opts.removeOnly ? [] : rep.items.filter((i) => i.type === 'missing');
+    const unused = repNoExclude.items.filter((i) => i.type === 'unused');
+    const extra = repNoExclude.items.filter((i) => i.type === 'extra');
+
+	// Group unused keys by locale for targeted removal
+	const unusedByLocale = new Map<string, Set<string>>();
+	for (const u of unused) {
+		if (!u.locale) continue;
+		const set = unusedByLocale.get(u.locale) ?? new Set<string>();
+		set.add(u.key);
+		unusedByLocale.set(u.locale, set);
+	}
+	const extraKeys = new Set<string>(extra.map((e) => e.key));
 
 	const baseGlobs = config.localeFileGlobs && config.localeFileGlobs.length > 0 ? config.localeFileGlobs : undefined;
 
@@ -34,8 +51,15 @@ export async function runFix(_opts: Partial<AuditConfig> & { config?: string; re
 				const raw = await readFile(file, 'utf8');
 				const json = JSON.parse(raw) as Record<string, unknown>;
 				const flat = flattenObject(json);
-				// remove unused keys present in this file
-				fileToFlat[file] = flat;
+				// remove unused and extra keys present in this file
+				const flatOut: Record<string, unknown> = {};
+				const localeUnused = unusedByLocale.get(locale) ?? new Set<string>();
+				for (const [k, v] of Object.entries(flat)) {
+					if (localeUnused.has(k)) continue;
+					if (extraKeys.has(k)) continue;
+					flatOut[k] = v;
+				}
+				fileToFlat[file] = flatOut;
 			} catch {
 				// ignore parse errors
 			}

@@ -2,7 +2,6 @@ import fg from 'fast-glob';
 import { readFile } from 'node:fs/promises';
 import { flattenObject } from './utils/flatten.js';
 import type { AuditConfig, LocaleMap } from './types.js';
-import { DEFAULT_LOCALE_EXTENSIONS } from './constants.js';
 
 export async function loadLocales(config: AuditConfig): Promise<LocaleMap> {
 	if (!config.localeFileGlobs || config.localeFileGlobs.length === 0) {
@@ -49,8 +48,16 @@ export async function loadLocales(config: AuditConfig): Promise<LocaleMap> {
 		try {
 			const raw = await readFile(fileNorm, 'utf8');
 			const json = JSON.parse(raw) as Record<string, unknown>;
-			const flat = flattenObject(json);
-			map[locale] = { ...(map[locale] ?? {}), ...flat };
+            let flat = flattenObject(json);
+            const patterns = (config.excludeKeyPatterns ?? []).map((p) => {
+                try { return new RegExp(p); } catch { return null; }
+            }).filter((r): r is RegExp => !!r);
+            if (patterns.length > 0) {
+                flat = Object.fromEntries(
+                    Object.entries(flat).filter(([k]) => !patterns.some((re) => re.test(k)))
+                );
+            }
+            map[locale] = { ...(map[locale] ?? {}), ...flat };
 		} catch {
 			// ignore parse errors for now
 		}
