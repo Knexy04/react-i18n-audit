@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { z } from 'zod';
-import { DEFAULT_SOURCE_GLOBS, DEFAULT_PLACEHOLDER, DEFAULT_TRANSLATION_HOOKS, DEFAULT_TRANSLATION_FUNCTIONS } from './constants.js';
+import { DEFAULT_SOURCE_GLOBS, DEFAULT_PLACEHOLDER, DEFAULT_TRANSLATION_HOOKS, DEFAULT_TRANSLATION_FUNCTIONS, DEFAULT_TRANSLATION_FACTORIES } from './constants.js';
 import type { AuditConfig } from './types.js';
 
 const ConfigSchema = z.object({
@@ -10,6 +10,7 @@ const ConfigSchema = z.object({
 	placeholderText: z.string().default(DEFAULT_PLACEHOLDER),
 	translationHookNames: z.array(z.string()).default(DEFAULT_TRANSLATION_HOOKS),
 	translationFunctionNames: z.array(z.string()).default(DEFAULT_TRANSLATION_FUNCTIONS),
+	translationFactoryNames: z.array(z.string()).default(DEFAULT_TRANSLATION_FACTORIES),
 	excludeKeyPatterns: z.array(z.string()).default(['\\.polyglot-description$']),
 });
 

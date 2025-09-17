@@ -6,7 +6,7 @@ A CLI to audit i18n keys in React/Next.js projects. It finds missing keys, unuse
 - **check**: run a check that fails (non‑zero exit code) if there are issues — perfect for CI
 - **fix**: remove unused/extra keys and add placeholders for missing ones
 
-Supported patterns out of the box: `t('key')`, `i18n.t('key')`, `useTranslations('NS')('key')`, `intl.formatMessage({ id: 'key' })`. You can customize hook and function names.
+Supported patterns out of the box: `t('key')`, `i18n.t('key')`, `useTranslations('NS')('key')`, `intl.formatMessage({ id: 'key' })`, and factories like `createTranslator({ namespace: 'NS', ... })` / `getStaticTranslator({ namespace: 'NS', ... })`. You can customize hook, function, and factory names.
 
 ## Installation
 
@@ -39,6 +39,7 @@ Create `i18n-audit.config.json` in the project root:
   "placeholderText": "[MISSING]",
   "translationHookNames": ["useTranslations", "useFmtTranslations"],
   "translationFunctionNames": ["t"],
+  "translationFactoryNames": ["createTranslator", "getStaticTranslator"],
   "excludeKeyPatterns": ["\\.polyglot-description$"]
 }
 ```
@@ -136,6 +137,7 @@ Defaults:
   "placeholderText": "[MISSING]",
   "translationHookNames": ["useTranslations", "useFmtTranslations"],
   "translationFunctionNames": ["t"],
+  "translationFactoryNames": ["createTranslator", "getStaticTranslator"],
   "excludeKeyPatterns": ["\\.polyglot-description$"]
 }
 ```
@@ -174,7 +176,7 @@ GitHub Actions example (snippet):
 - **next-intl**: `useTranslations('NS')('key')` and `const t = useTranslations('NS'); t('key')`
 - **FormatJS**: `intl.formatMessage({ id: 'key' })`
 
-You can extend/override these via `translationHookNames` and `translationFunctionNames` in the config.
+You can extend/override these via `translationHookNames`, `translationFunctionNames`, and `translationFactoryNames` in the config.
 
 ## Limitations and notes
 

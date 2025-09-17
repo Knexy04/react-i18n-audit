@@ -37,36 +37,57 @@ export async function scanUsedKeys(config: AuditConfig): Promise<ScanResult> {
 					VariableDeclarator(path: any) {
 						// const t = useTranslations('Namespace') | useFmtTranslations('Namespace')
 						const id = path.node.id;
-						const init = path.node.init;
+						let init = path.node.init;
 						if (!id || !init) return;
 						if (id.type !== 'Identifier') return;
+						// Unwrap await: const t = await createTranslator({...})
+						if (init.type === 'AwaitExpression') init = init.argument;
 						if (init.type !== 'CallExpression') return;
 						const callee = init.callee as any;
 						const calleeName = callee?.type === 'Identifier' ? callee.name : (callee?.type === 'MemberExpression' ? callee.property?.name : undefined);
 						const hookNames = new Set(config.translationHookNames ?? []);
+						const factoryNames = new Set(config.translationFactoryNames ?? []);
+						// Hook style: useTranslations('NS')
 						if (hookNames.has(calleeName)) {
 							const firstArg = (init.arguments as any[])[0];
 							if (firstArg && firstArg.type === 'StringLiteral' && firstArg.value) {
 								identifierNamespace[id.name] = firstArg.value as string;
 							}
 						}
+						// Factory style: createTranslator({ namespace: 'NS', ...}) or getStaticTranslator({ namespace: 'NS', ...})
+						if (factoryNames.has(calleeName)) {
+							const firstArg = (init.arguments as any[])[0];
+							if (firstArg && firstArg.type === 'ObjectExpression') {
+								const nsProp = firstArg.properties.find((p: any) => (p.key?.name ?? p.key?.value) === 'namespace');
+								if (nsProp && nsProp.value?.type === 'StringLiteral' && nsProp.value.value) {
+									identifierNamespace[id.name] = nsProp.value.value as string;
+								}
+							}
+						}
 					},
 					CallExpression(path: any) {
-						// t('key') or i18n.t('key') or any identifier bound via configured hooks (e.g. tMeta('key'))
+						// t('key') or i18n.t('key') or t.rich('key') or any identifier bound via configured hooks (e.g. tMeta('key'))
 						const callee: any = path.node.callee as any;
 						const args = path.node.arguments as any[];
 						const firstArg = args[0];
 						const allowedFns = new Set(config.translationFunctionNames ?? ['t']);
 						const isIdentifierCall = (callee.type === 'Identifier' && (allowedFns.has(callee.name) || identifierNamespace[callee.name]));
-						const isMemberCall = (callee.type === 'MemberExpression' && allowedFns.has((callee.property as any).name));
-						if ((isIdentifierCall || isMemberCall) && firstArg && firstArg.type === 'StringLiteral') {
+						// i18n.t('key')
+						const isMemberCallByProp = (callee.type === 'MemberExpression' && allowedFns.has((callee.property as any).name));
+						// t.rich('key') — treat object as translator function identifier
+						const isMemberCallByObject = (callee.type === 'MemberExpression' && callee.object?.type === 'Identifier' && allowedFns.has(callee.object.name));
+						if ((isIdentifierCall || isMemberCallByProp || isMemberCallByObject) && firstArg && firstArg.type === 'StringLiteral') {
 							const rawKey = firstArg.value as string;
 							// If identifier is namespaced, prefix with namespace
 							let fullKey = rawKey;
 							if (callee.type === 'Identifier' && identifierNamespace[callee.name]) {
 								fullKey = `${identifierNamespace[callee.name]}.${rawKey}`;
-							} else if (callee.type === 'MemberExpression' && callee.object?.type === 'Identifier' && identifierNamespace[callee.object.name]) {
-								fullKey = `${identifierNamespace[callee.object.name]}.${rawKey}`;
+							} else if (callee.type === 'MemberExpression') {
+								// prefer namespace bound to object (t.rich or i18n.t)
+								const obj = callee.object as any;
+								if (obj?.type === 'Identifier' && identifierNamespace[obj.name]) {
+									fullKey = `${identifierNamespace[obj.name]}.${rawKey}`;
+								}
 							}
 							used.add(fullKey);
 							hits[file] = (hits[file] ?? 0) + 1;

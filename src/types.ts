@@ -12,6 +12,9 @@ export interface AuditConfig {
 	translationHookNames?: string[];
 	// Names of translation functions to call, e.g. t, tMeta, tFooter
 	translationFunctionNames?: string[];
+	// Names of factory functions returning a translator via object arg with { namespace }
+	// e.g. createTranslator, getStaticTranslator
+	translationFactoryNames?: string[];
 	// Regex patterns (as strings) to exclude flattened locale keys from analysis
 	excludeKeyPatterns?: string[];
 }
