@@ -4,7 +4,10 @@
   "description": "I18n audit for React/Next: fix, report, check",
   "type": "module",
   "homepage": "https://github.com/Knexy04/react-i18n-audit",
-  "repository": "github:Knexy04/react-i18n-audit",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Knexy04/react-i18n-audit.git"
+  },
   "author": "Knexy04",
   "bin": {
     "react-i18n-audit": "dist/cli.cjs"
